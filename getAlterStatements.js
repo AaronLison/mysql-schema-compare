@@ -22,18 +22,17 @@ function getAlterStatements(oldSchema, newSchema) {
 
         for(const column in newTable){
             if(!oldTable[column]){
-                alterStatements.push(`ALTER TABLE \`${tableName}\` ADD \`${column}\` ${newTable[column].replace(/ NOT NULL/, '')} AFTER \`${Object.keys(oldTable).pop()}\`;`);
+                alterStatements.push(`ALTER TABLE \`${tableName}\` ADD \`${column}\` ${newTable[column]} AFTER \`${Object.keys(oldTable).pop()}\`;`);
             }
-            else if(oldTable[column].trim().toLowerCase().split(' ').join('') !== newTable[column].trim().toLowerCase().split(' ').join('')){
-                debugDiffs.push(
-                    `=== ${tableName} -> ${column} ===`,
-                    `BEFORE: ${oldTable[column].trim().toLowerCase()}`,
-                    `AFTER:  ${newTable[column].trim().toLowerCase()}`,
-                    ``,
-                )
-                modifyStatements.push(`ALTER TABLE \`${tableName}\` MODIFY \`${column}\` ${newTable[column]};`);
+            else {
+                const [modifyStatement, debugValue] = getModifyStatement(tableName, column, oldTable, newTable);
+                if(modifyStatement){
+                    modifyStatements.push(modifyStatement);
+                }
+                if(debugValue){
+                    debugDiffs.push(debugValue);
+                }
             }
-
         }
     }
 
@@ -117,7 +116,6 @@ function createTable(tableName, newTableAlterRows, newTable){
         let alterStr = `ALTER TABLE \`${tableName}\`\n`;
         let isAlterOpen = true;
         for(const alterRow of newTableAlterRows){
-            console.log(tableName, newTableAlterRows)
             if(!isAlterOpen){
                 // alter not open anymore, but more alter statements are there
                 // let's add the alter table again
@@ -132,6 +130,61 @@ function createTable(tableName, newTableAlterRows, newTable){
         createStatements.push(alterStr);
     }
     return createStatements.join('\n');
+}
+
+function getModifyStatement(tableName, column, oldTable, newTable){
+    let oldValue = oldTable[column].trim();
+    let newValue = newTable[column].trim();
+
+    // remove all double spaces that are NOT inside quotes
+    oldValue = oldValue.split("'").map((part, i) => i % 2 === 0 ? part.replace(/  +/g, ' ') : part).join("'").trim();
+    oldValue = oldValue.split("`").map((part, i) => i % 2 === 0 ? part.replace(/  +/g, ' ') : part).join("`").trim();
+    newValue = newValue.split("'").map((part, i) => i % 2 === 0 ? part.replace(/  +/g, ' ') : part).join("'").trim();
+    newValue = newValue.split("`").map((part, i) => i % 2 === 0 ? part.replace(/  +/g, ' ') : part).join("`").trim();
+
+    if(oldValue.toLowerCase() == newValue.toLowerCase()){
+        return [null, null];
+    }
+
+    let modifyStatement = '';
+    if(oldValue.toLowerCase().trim().startsWith('enum') && newValue.toLowerCase().trim().startsWith('enum')){
+
+        if(oldValue.split('(').length !== 2 || newValue.split('(').length !== 2){
+            throw new Error('Cannot parse ENUM');
+        }
+        if(oldValue.split(')').length !== 2 || newValue.split(')').length !== 2){
+            throw new Error('Cannot parse ENUM');
+        }
+
+        const [oldInbetweenEnum, oldAfterEnum] = oldValue.split('(')[1].split(')');
+        const [newInbetweenEnum, newAfterEnum] = newValue.split('(')[1].split(')');
+        const oldEnumValues = oldInbetweenEnum.split("'").filter((_, i) => i % 2 === 1);
+        const newEnumValues = newInbetweenEnum.split("'").filter((_, i) => i % 2 === 1);
+
+        const newlyAddedEnumValues = newEnumValues.filter(value => !oldEnumValues.includes(value));
+        if(newlyAddedEnumValues.length == 0 && oldAfterEnum.trim().toLowerCase() == newAfterEnum.trim().toLowerCase()){
+            // no new added values and no changes
+            return [null, null];
+        }
+
+        // we don't want to remove ENUM values
+        // only add the new ones
+        const enumValuesStr = [...new Set([...oldEnumValues, ...newEnumValues])].map(value => `'${value}'`).join(',');
+        modifyStatement = `ALTER TABLE \`${tableName}\` MODIFY \`${column}\` ENUM(${enumValuesStr})${newAfterEnum};`;
+    }else{
+        modifyStatement = `ALTER TABLE \`${tableName}\` MODIFY \`${column}\` ${newTable[column]};`;
+    }
+
+
+    let debugValue = `=== ${tableName} -> ${column} ===\nBEFORE: ${oldValue.toLowerCase()}\nAFTER:  ${newValue.trim().toLowerCase()}\n`;
+    if(modifyStatement.split('ENUM')[1]){
+        debugValue += `MODIFY: ENUM${modifyStatement.split('ENUM')[1]}\n`;
+    }
+
+    return [
+        modifyStatement,
+        debugValue,
+    ]
 }
 
 const fs = require('fs');

@@ -112,7 +112,7 @@ function createTable(tableName, newTableAlterRows, newTable){
     const createStatements = [];
     createStatements.push('');
     createStatements.push(`CREATE TABLE \`${tableName}\` (\n${Object.entries(newTable).map(([column, type]) => `  \`${column}\` ${type}`).join(',\n')}\n);`);
-    if(newTableAlterRows){
+    if(newTableAlterRows && newTableAlterRows.length > 0){
         let alterStr = `ALTER TABLE \`${tableName}\`\n`;
         let isAlterOpen = true;
         for(const alterRow of newTableAlterRows){

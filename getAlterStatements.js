@@ -94,7 +94,7 @@ function schemaToJson(schema){
         if(createOpen){
             if(line.includes('`')){
                 const [_, column, ...rest] = line.split('`');
-                let typeStr = rest.join(' ').trim();
+                let typeStr = rest.join('`').trim();
                 if(typeStr.endsWith(',')){
                     typeStr = typeStr.slice(0, -1);
                 }

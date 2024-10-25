@@ -36,10 +36,10 @@ function getAlterStatements(oldSchema, newSchema) {
         }
     }
 
-    fs.writeFileSync('./output/alter_statements.sql', alterStatements.join('\n'));
-    fs.writeFileSync('./output/create_statements.sql', createStatements.join('\n'));
-    fs.writeFileSync('./output/modify_statements.sql', modifyStatements.join('\n'));
-    fs.writeFileSync('./output/modify_statements_debug.txt', debugDiffs.join('\n'));
+    fs.writeFileSync('./output/2_alter_statements.sql', alterStatements.join('\n'));
+    fs.writeFileSync('./output/1_create_statements.sql', createStatements.join('\n'));
+    fs.writeFileSync('./output/3_modify_statements.sql', modifyStatements.join('\n'));
+    fs.writeFileSync('./output/3_modify_statements_debug.txt', debugDiffs.join('\n'));
 
     return [
         '',

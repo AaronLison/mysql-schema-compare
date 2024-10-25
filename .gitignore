@@ -1,5 +1,6 @@
 input/new.sql
 input/old.sql
 output/alter_statements.sql
+output/create_statements.sql
 output/modify_statements.sql
 output/modify_statements_debug.txt

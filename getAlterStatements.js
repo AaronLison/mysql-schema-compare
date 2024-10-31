@@ -139,10 +139,35 @@ function getModifyStatement(tableName, column, oldTable, newTable){
     // remove all double spaces that are NOT inside quotes
     oldValue = oldValue.split("'").map((part, i) => i % 2 === 0 ? part.replace(/  +/g, ' ') : part).join("'").trim();
     oldValue = oldValue.split("`").map((part, i) => i % 2 === 0 ? part.replace(/  +/g, ' ') : part).join("`").trim();
+    oldValue = oldValue.replace('int(11)', 'int').replace('INT(11)', 'INT').replace(`'0.0'`, `'0`);
     newValue = newValue.split("'").map((part, i) => i % 2 === 0 ? part.replace(/  +/g, ' ') : part).join("'").trim();
     newValue = newValue.split("`").map((part, i) => i % 2 === 0 ? part.replace(/  +/g, ' ') : part).join("`").trim();
+    newValue = newValue.replace('int(11)', 'int').replace('INT(11)', 'INT').replace(`'0.0'`, `'0`);
 
     if(oldValue.toLowerCase() == newValue.toLowerCase()){
+        return [null, null];
+    }
+
+    const oldValueWithoutWhiteSpaceAndQuotes = oldValue.replace(/['"`]/g, '').replace(/ /g, '');
+    const newValueWithoutWhiteSpaceAndQuotes = newValue.replace(/['"`]/g, '').replace(/ /g, '');
+
+    if(oldValueWithoutWhiteSpaceAndQuotes.toLowerCase() == newValueWithoutWhiteSpaceAndQuotes.toLowerCase()){
+        // sometimes a default value can have quotes vs in the sql file we don't add the quotes
+        // same for extra whitespaces
+        return [null, null];
+    }
+    if(oldValueWithoutWhiteSpaceAndQuotes.toLowerCase().replace('defaultnull', '') == newValueWithoutWhiteSpaceAndQuotes.toLowerCase().toLowerCase().replace('defaultnull', '')){
+        // sometimes the mysql dump adds the default value, while we didn't add it in the sql file
+        return [null, null];
+    }
+    if(oldValueWithoutWhiteSpaceAndQuotes.toLowerCase().replace('default', '') == newValueWithoutWhiteSpaceAndQuotes.toLowerCase()){
+        // sometimes the mysql dump adds the default value, while we didn't add it in the sql file
+        return [null, null];
+    }
+    if(oldValueWithoutWhiteSpaceAndQuotes.toLowerCase().replace('charactersetlatin1', '') == newValueWithoutWhiteSpaceAndQuotes.toLowerCase()){
+        return [null, null];
+    }
+    if(oldValueWithoutWhiteSpaceAndQuotes.toLowerCase().replace('collatelatin1_general_ci', '') == newValueWithoutWhiteSpaceAndQuotes.toLowerCase()){
         return [null, null];
     }
 

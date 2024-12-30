@@ -36,6 +36,10 @@ function getAlterStatements(oldSchema, newSchema) {
         }
     }
 
+    // because alter statements will always be after a specific column (where we don't take potential new columns into account)
+    // we can just revert the order of the alter statements and it will be the correct order (because always AFTER 'last column', which is always the same one)
+    alterStatements.reverse();
+
     fs.writeFileSync('./output/2_alter_statements.sql', alterStatements.join('\n'));
     fs.writeFileSync('./output/1_create_statements.sql', createStatements.join('\n'));
     fs.writeFileSync('./output/3_modify_statements.sql', modifyStatements.join('\n'));

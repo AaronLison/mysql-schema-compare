@@ -1,5 +1,6 @@
+const fs = require('fs');
 
-function getAlterStatements(oldSchema, newSchema) {
+module.exports = async function getAlterStatements(oldSchema, newSchema) {
 
     const oldSchemaJson = schemaToJson(oldSchema);
     const newSchemaJson = schemaToJson(newSchema);
@@ -40,20 +41,16 @@ function getAlterStatements(oldSchema, newSchema) {
     // we can just revert the order of the alter statements and it will be the correct order (because always AFTER 'last column', which is always the same one)
     alterStatements.reverse();
 
-    fs.writeFileSync('./output/2_alter_statements.sql', alterStatements.join('\n'));
     fs.writeFileSync('./output/1_create_statements.sql', createStatements.join('\n'));
+    fs.writeFileSync('./output/2_alter_statements.sql', alterStatements.join('\n'));
     fs.writeFileSync('./output/3_modify_statements.sql', modifyStatements.join('\n'));
     fs.writeFileSync('./output/3_modify_statements_debug.txt', debugDiffs.join('\n'));
 
-    return [
-        '',
-        '--- ALTER STATEMENTS ---',
-        ...alterStatements,
-        '',
-        '--- MODIFY STATEMENTS ---',
-        ...modifyStatements,
-        '',
-    ].join('\n');
+    return {
+        createStatements,
+        alterStatements,
+        modifyStatements,
+    }
 }
 
 function schemaToJson(schema){
@@ -217,9 +214,3 @@ function getModifyStatement(tableName, column, oldTable, newTable){
         debugValue,
     ]
 }
-
-const fs = require('fs');
-const oldSchema = fs.readFileSync('./input/old.sql', 'utf8');
-const newSchema = fs.readFileSync('./input/new.sql', 'utf8');
-const res = getAlterStatements(oldSchema, newSchema);
-// console.log(res);

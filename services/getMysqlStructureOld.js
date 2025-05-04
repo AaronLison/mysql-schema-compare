@@ -67,13 +67,7 @@ function convertCreateQueryToPhpMyAdminStyleQueries(createStatement) {
           autoIncrementCol = line.match(/^`(\w+)`/)[1]
           line = line.replace(/\s+AUTO_INCREMENT/, '')
         }
-  
-        // remove DEFAULT NULL and keep NULLness implied
-        line = line.replace(/\s+DEFAULT NULL/, '')
-  
-        // convert DEFAULT '0' to DEFAULT 0
-        line = line.replace(/DEFAULT\s+'(\d+)'/, 'DEFAULT $1')
-  
+
         // remove trailing comma for now
         line = line.replace(/,\s*$/, '')
   
@@ -81,7 +75,7 @@ function convertCreateQueryToPhpMyAdminStyleQueries(createStatement) {
       }
     }
   
-    const columnBlock = columnLines.join(',\n  ')
+    const columnBlock = '  ' + columnLines.join(',\n  ')
     const indexBlock = indexLines
       .map((l, i) => (i === 0 ? `ALTER TABLE \`${tableName}\`\n  ADD ${l}` : `  ADD ${l}`))
       .join(',\n')

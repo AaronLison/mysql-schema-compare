@@ -18,7 +18,7 @@ const applyChanges = process.argv[2] === 'apply';
 (async () => {
     const mysqlConnection = await mysql.createConnection(mysqlConfig, mysqlConfig.database);
 
-    const oldSchema = await getMysqlStructureOld(mysqlConnection); 
+    const oldSchema = await getMysqlStructureOld(mysqlConnection, mysqlConfig.database); 
     const newSchema = await getMysqlStructureNew();
 
     const { createStatements, alterStatements, modifyStatements } = await getAlterStatements(oldSchema, newSchema);

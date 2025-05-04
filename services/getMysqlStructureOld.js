@@ -19,9 +19,6 @@ module.exports = async function getMysqlStructureOld(mysqlConnection, databaseNa
         queries.push(createQuery);
     }
 
-    // ok close mysqlConnection
-    await mysqlConnection.end();
-
     const content = queries.join('\n\n');
     fs.writeFileSync('./input/old.sql', content);
     return content;

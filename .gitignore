@@ -6,3 +6,5 @@ output/3_modify_statements.sql
 output/3_modify_statements_debug.txt
 
 .vscode/
+node_modules/
+.env

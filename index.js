@@ -25,9 +25,15 @@ const applyChanges = process.argv[2] === 'apply';
     const { createStatements, alterStatements, modifyStatements } = await getAlterStatements(oldSchema, newSchema);
 
     if (applyChanges) {
-        await mysqlConnection.query(createStatements.join('\n'));
-        await mysqlConnection.query(alterStatements.join('\n'));
-        await mysqlConnection.query(modifyStatements.join('\n'));
+        if(createStatements.length > 0){
+            await mysqlConnection.query(createStatements.join('\n'));
+        }
+        if(alterStatements.length > 0){
+            await mysqlConnection.query(alterStatements.join('\n'));
+        }
+        if(modifyStatements.length > 0){
+            await mysqlConnection.query(modifyStatements.join('\n'));
+        }
     }
 
     await mysqlConnection.end();

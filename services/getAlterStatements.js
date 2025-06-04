@@ -1,4 +1,6 @@
 const fs = require('fs');
+const getIndexesFromAlterRows = require('./indexes/getIndexesFromAlterRows');
+const { findIdenticalIndex } = require('./indexes/indexDiffs');
 
 module.exports = async function getAlterStatements(oldSchema, newSchema) {
 
@@ -9,6 +11,9 @@ module.exports = async function getAlterStatements(oldSchema, newSchema) {
     const modifyStatements = [];
     const createStatements = [];
     const debugDiffs = [];
+    
+    const alterKeysStatements = [];
+    const riskyAlterKeysStatements = [];
 
     for(const tableName in newSchemaJson){
         const newTable = newSchemaJson[tableName]?.['create'];
@@ -35,6 +40,54 @@ module.exports = async function getAlterStatements(oldSchema, newSchema) {
                 }
             }
         }
+
+        const oldTableIndexes = oldSchemaJson[tableName].indexes;
+        const newTableIndexes = newSchemaJson[tableName].indexes;
+
+        const existingOldIndexNamesInNewTable = []
+        const indexesToAdd = []
+
+        for (const [indexName, indexInfo] of Object.entries(newTableIndexes)) {
+            const identicalIndex = findIdenticalIndex(oldTableIndexes, indexName, indexInfo);
+
+            if(identicalIndex){
+                // index found in old schema
+                existingOldIndexNamesInNewTable.push(identicalIndex.identicalIndexName);
+                continue;
+            }
+
+            indexesToAdd.push({
+                name: indexName,
+                ...indexInfo,
+            })
+        }
+
+        const indexesToDrop = Object.entries(oldTableIndexes).filter(([indexName, _]) => {
+                return !existingOldIndexNamesInNewTable.includes(indexName)
+            }).map(([indexName, indexInfo]) => {
+                return {
+                    name: indexName,
+                    ...indexInfo,
+                }
+            });
+        
+        const alterKeysStatement = getAlterKeysStatement(tableName, indexesToAdd, indexesToDrop)
+        
+        if(!alterKeysStatement){
+            continue;
+        }
+
+        if(alterKeysStatement.includes('DROP PRIMARY KEY')) {
+            // very risky -> log to debug file
+            riskyAlterKeysStatements.push(`PRIMARY KEY DROP DETECTED: ${alterKeysStatement}`);
+            continue;
+        }
+
+        alterKeysStatements.push(alterKeysStatement);
+    }
+
+    if(riskyAlterKeysStatements.length > 0) {
+        console.log('WARNING: risky update keys statements detected. Check ./output/4_alter_keys_statements_debug.txt for more information.\n');
     }
 
     // because alter statements will always be after a specific column (where we don't take potential new columns into account)
@@ -45,11 +98,14 @@ module.exports = async function getAlterStatements(oldSchema, newSchema) {
     fs.writeFileSync('./output/2_alter_statements.sql', alterStatements.join('\n'));
     fs.writeFileSync('./output/3_modify_statements.sql', modifyStatements.join('\n'));
     fs.writeFileSync('./output/3_modify_statements_debug.txt', debugDiffs.join('\n'));
+    fs.writeFileSync('./output/4_alter_keys_statements.sql', alterKeysStatements.join('\n'));
+    fs.writeFileSync('./output/4_alter_keys_statements_debug.txt', riskyAlterKeysStatements.join('\n'));
 
     return {
         createStatements,
         alterStatements,
         modifyStatements,
+        alterKeysStatements,
     }
 }
 
@@ -108,7 +164,16 @@ function schemaToJson(schema){
 
     }
 
-    return schemaJson;
+    const schemaJsonWithKeys = Object.fromEntries(
+        Object.entries(schemaJson).map(([tableName, tableData]) => {
+            const alterRows = tableData.alterRows || [];
+            tableData.indexes = getIndexesFromAlterRows(alterRows);
+
+            return [tableName, tableData];
+        })
+    )
+
+    return schemaJsonWithKeys;
 }
 
 function createTable(tableName, newTableAlterRows, newTable){
@@ -213,4 +278,46 @@ function getModifyStatement(tableName, column, oldTable, newTable){
         modifyStatement,
         debugValue,
     ]
+}
+
+function getAlterKeysStatement(tableName, indexesToAdd, indexesToDrop) {
+    if(indexesToAdd.length === 0 && indexesToDrop.length === 0){
+        return null;
+    }
+
+    const dropIndexesText = indexesToDrop.map(index => {
+        if(index.type === 'PRIMARY') {
+            return `DROP PRIMARY KEY`;
+        }
+
+        return `DROP INDEX \`${index.name}\``
+    }).join(', ');
+
+    const addIndexesText = indexesToAdd.map(index => {
+        const joinedColumnsString = index.columns.map(columnName => {
+            if(columnName.startsWith('`')) {
+                return columnName; // already correct format
+            }
+            return `\`${columnName}\``
+        }).join(', ');
+        if(index.type === 'PRIMARY') {
+            return `ADD PRIMARY KEY (${joinedColumnsString})`;
+        }
+
+        const indexTypeText = index.type === 'UNIQUE' ? 'UNIQUE ' : ''
+
+        return `ADD ${indexTypeText}KEY \`${index.name}\` (${joinedColumnsString})`;
+    }).join(', ');
+
+    const alterIndexesTextParts = []
+    if(dropIndexesText){
+        alterIndexesTextParts.push(dropIndexesText);
+    }
+    if(addIndexesText){
+        alterIndexesTextParts.push(addIndexesText);
+    }
+
+    const alterIndexesText = alterIndexesTextParts.join(', ');
+
+    return `ALTER TABLE \`${tableName}\` ${alterIndexesText};`;
 }

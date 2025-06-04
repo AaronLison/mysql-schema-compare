@@ -4,18 +4,18 @@ module.exports = function getIndexesJsonFromAlterRows(alterRows) {
     for (const alterRow of alterRows) {
         const trimmedRow = alterRow.trim();
         // remove last character (semicolor or comma)
-        const row = trimmedRow.slice(0, -1).trim();
+        const row = trimmedRow.trim().slice(0, -1);
 
         if(!row.startsWith('ADD ')) {
             continue;
         }
         
-        // Handle primary key separately
+        // handle primary key separately
         const primaryKeyRegex = /^ADD PRIMARY KEY\s*\(([^)]+)\)/i
         const primaryKeyMatch = row.match(primaryKeyRegex);
         if (primaryKeyMatch) {
             const columns = primaryKeyMatch[1].split(',').map(col => trimQuotes(col));
-            const keyName = trimQuotes(columns[0]); // Use the first column as the key name
+            const keyName = trimQuotes(columns[0]); // use the first column as the key name
             indexes[keyName] = {
                 type: 'PRIMARY',
                 columns: columns
@@ -28,8 +28,8 @@ module.exports = function getIndexesJsonFromAlterRows(alterRows) {
         const indexMatch = row.match(indexRegex)
         if (indexMatch) {
             const isUnique = !!indexMatch[1];
-            const columns = (indexMatch[3] || indexMatch[4]).split(',').map(col => trimQuotes(col));
-            const keyName = indexMatch[2] || trimQuotes(columns[0]); // Use the first column as the key name
+            const columns = (indexMatch[3]).split(',').map(col => trimQuotes(col));
+            const keyName = indexMatch[2] || trimQuotes(columns[0]); // use the first column as the key name
 
             indexes[keyName] = {
                 type: isUnique ? 'UNIQUE' : 'INDEX',

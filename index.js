@@ -16,6 +16,8 @@ const mysqlConfig = {
 
 const applyChanges = process.argv[2] === 'apply';
 
+const applyIndexChanges = process.argv?.[3] === '--include-indexes';
+
 (async () => {
     const mysqlConnection = await mysql.createConnection(mysqlConfig, mysqlConfig.database);
 
@@ -34,7 +36,7 @@ const applyChanges = process.argv[2] === 'apply';
         if(modifyStatements.length > 0){
             await mysqlConnection.query(modifyStatements.join('\n'));
         }
-        if(alterKeysStatements.length > 0){
+        if(applyIndexChanges && alterKeysStatements.length > 0){
             for (const alterKeysStatement of alterKeysStatements) {
                 try {
                     await mysqlConnection.query(alterKeysStatement);

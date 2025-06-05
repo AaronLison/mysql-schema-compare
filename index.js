@@ -16,7 +16,10 @@ const mysqlConfig = {
 
 const applyChanges = process.argv[2] === 'apply';
 
-const applyIndexChanges = process.argv?.[3] === '--include-indexes';
+const optionalArgsStartIndex = applyChanges ? 3 : 2;
+const optionalArgs = [...process.argv].slice(optionalArgsStartIndex);
+
+const applyIndexChanges = optionalArgs.includes('--include-indexes');
 
 (async () => {
     const mysqlConnection = await mysql.createConnection(mysqlConfig, mysqlConfig.database);

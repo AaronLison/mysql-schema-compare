@@ -4,6 +4,8 @@ output/1_create_statements.sql
 output/2_alter_statements.sql
 output/3_modify_statements.sql
 output/3_modify_statements_debug.txt
+output/4_alter_keys_statements.sql
+output/4_alter_keys_statements_debug.txt
 
 .vscode/
 node_modules/

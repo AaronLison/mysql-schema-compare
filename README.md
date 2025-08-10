@@ -42,6 +42,13 @@ This will execute the generated queries on the target database.
 
 Make sure your MySQL connection details are configured as required by the project.
 
+For easier use, you can create a .sh script with following contents
+```
+cd /Users/x/y/z/mysql-schema-compare
+node index.js apply
+echo "Mysql schema applied"
+```
+
 **Optional flags for `npm run apply`:**
 
 - `--include-indexes`: Also execute queries that update indexes.

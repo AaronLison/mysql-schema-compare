@@ -31,13 +31,46 @@ const applyIndexChanges = optionalArgs.includes('--include-indexes');
 
     if (applyChanges) {
         if(createStatements.length > 0){
-            await mysqlConnection.query(createStatements.join('\n'));
+            for (const createStatement of createStatements) {
+                try {
+                    await mysqlConnection.query(createStatement);
+                } catch (error) {
+                    const sqlMessage = error.sqlMessage || 'Error executing query';
+                    const query = error.sql || createStatement;
+
+                    console.error(`${sqlMessage}:`, {
+                        query: query,
+                    });
+                }
+            }
         }
         if(alterStatements.length > 0){
-            await mysqlConnection.query(alterStatements.join('\n'));
+            for (const alterStatement of alterStatements) {
+                try {
+                    await mysqlConnection.query(alterStatement);
+                } catch (error) {
+                    const sqlMessage = error.sqlMessage || 'Error executing query';
+                    const query = error.sql || alterStatement;
+
+                    console.error(`${sqlMessage}:`, {
+                        query: query,
+                    });
+                }
+            }
         }
         if(modifyStatements.length > 0){
-            await mysqlConnection.query(modifyStatements.join('\n'));
+            for (const modifyStatement of modifyStatements) {
+                try {
+                    await mysqlConnection.query(modifyStatement);
+                } catch (error) {
+                    const sqlMessage = error.sqlMessage || 'Error executing query';
+                    const query = error.sql || modifyStatement;
+
+                    console.error(`${sqlMessage}:`, {
+                        query: query,
+                    });
+                }
+            }
         }
         if(applyIndexChanges && alterKeysStatements.length > 0){
             for (const alterKeysStatement of alterKeysStatements) {
